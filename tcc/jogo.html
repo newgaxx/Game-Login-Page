@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Batalha Pokemon</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep:   #030b1a;
+      --bg-panel:  #061224;
+      --border:    #1a6eb5;
+      --border-glow: #2a9de8;
+      --gold:      #f5a800;
+      --gold-dim:  #a87000;
+      --text:      #c8e8ff;
+      --fire:      #ff6b2b;
+      --water:     #29b6f6;
+      --electric:  #ffe033;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-deep);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'VT323', monospace;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Estrelas de fundo dos guris*/
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 75%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 40% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 70% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 85%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 15% 50%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 92% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 5%  90%, rgba(255,255,255,0.5) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    /* Linhas de varredura */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0, 0, 0, 0.12) 3px,
+        rgba(0, 0, 0, 0.12) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Painel principal */
+    .panel {
+      background: linear-gradient(160deg, #071828 0%, #040f1e 100%);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      padding: 48px 56px;
+      max-width: 700px;
+      width: 95%;
+      position: relative;
+      box-shadow:
+        0 0 0 1px #0a2a4a,
+        0 0 30px rgba(30, 100, 180, 0.3),
+        inset 0 0 40px rgba(10, 40, 80, 0.5);
+      animation: panel-in 0.6s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    @keyframes panel-in {
+      from { opacity: 0; transform: scale(0.94) translateY(20px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0); }
+    }
+
+    /* cantos dos paineis */
+    .panel::before,
+    .panel::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+    }
+    .panel::before {
+      top: -2px; left: -2px;
+      border-top: 3px solid var(--border-glow);
+      border-left: 3px solid var(--border-glow);
+    }
+    .panel::after {
+      bottom: -2px; right: -2px;
+      border-bottom: 3px solid var(--border-glow);
+      border-right: 3px solid var(--border-glow);
+    }
+
+    /* Titulo brilha haaaha*/
+    .title {
+      font-family: 'Press Start 2P', monospace;
+      color: var(--gold);
+      font-size: 1.55rem;
+      text-align: center;
+      line-height: 1.6;
+      letter-spacing: 0.05em;
+      text-shadow:
+        0 0 10px rgba(245, 168, 0, 0.7),
+        0 0 30px rgba(245, 168, 0, 0.3),
+        2px 2px 0 #7a5200;
+      margin-bottom: 8px;
+      animation: flicker 4s infinite;
+    }
+
+    @keyframes flicker {
+      0%, 92%, 96%, 100% { opacity: 1; }
+      93%, 95%            { opacity: 0.85; }
+      94%                 { opacity: 0.95; }
+    }
+
+    .title-icon {
+      display: inline-block;
+      animation: spin-icon 3s linear infinite;
+    }
+    @keyframes spin-icon {
+      0%, 40%, 100% { transform: rotate(0deg); }
+      50%            { transform: rotate(20deg); }
+      60%            { transform: rotate(-10deg); }
+      70%            { transform: rotate(0deg); }
+    }
+
+    .subtitle {
+      font-family: 'VT323', monospace;
+      font-size: 1.15rem;
+      color: var(--text);
+      text-align: center;
+      letter-spacing: 0.06em;
+      margin-bottom: 36px;
+      opacity: 0.8;
+    }
+
+    /* Cards geral */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    /* Individual card */
+    .card {
+      background: linear-gradient(180deg, #071a2e 0%, #040f1e 100%);
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      cursor: pointer;
+      transition:
+        border-color 0.25s,
+        box-shadow 0.25s,
+        transform 0.2s;
+      animation: card-in 0.5s cubic-bezier(.22,1,.36,1) both;
+      text-decoration: none;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.15s; }
+    .card:nth-child(2) { animation-delay: 0.25s; }
+    .card:nth-child(3) { animation-delay: 0.35s; }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* efeito hover */
+    .card:hover {
+      transform: translateY(-6px) scale(1.03);
+    }
+
+    /* card do pokemon fogo */
+    .card.fire:hover {
+      border-color: var(--fire);
+      box-shadow: 0 0 20px rgba(255, 107, 43, 0.45), 0 8px 24px rgba(0,0,0,0.5);
+    }
+    /* card do pokemon agua */
+    .card.water:hover {
+      border-color: var(--water);
+      box-shadow: 0 0 20px rgba(41, 182, 246, 0.45), 0 8px 24px rgba(0,0,0,0.5);
+    }
+    /* card do pokemon eletrico */
+    .card.electric:hover {
+      border-color: var(--electric);
+      box-shadow: 0 0 20px rgba(255, 224, 51, 0.45), 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    /* presta atençao nessa porra caio porra os guri brilha dps que vc clica nele nao muda filho de deus*/
+    .card:focus {
+      outline: none;
+    }
+    .card.fire:focus      { border-color: var(--fire);     box-shadow: 0 0 24px rgba(255,107,43,0.6); }
+    .card.water:focus     { border-color: var(--water);    box-shadow: 0 0 24px rgba(41,182,246,0.6); }
+    .card.electric:focus  { border-color: var(--electric); box-shadow: 0 0 24px rgba(255,224,51,0.6); }
+
+    /* Ícone */
+    .card-icon {
+      font-size: 3rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 8px currentColor);
+      transition: transform 0.3s;
+    }
+    .card:hover .card-icon { transform: scale(1.18); }
+
+    .card.fire     .card-icon { color: var(--fire); }
+    .card.water    .card-icon { color: var(--water); }
+    .card.electric .card-icon { color: var(--electric); }
+
+    /* Nome */
+    .card-name {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+      color: #fff;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    /* Descrição */
+    .card-desc {
+      font-family: 'VT323', monospace;
+      font-size: 0.95rem;
+      color: var(--text);
+      text-align: center;
+      opacity: 0.7;
+      letter-spacing: 0.05em;
+      line-height: 1.3;
+    }
+
+    /* tipo de pokemon */
+    .type-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.42rem;
+      padding: 3px 8px;
+      border-radius: 2px;
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+    }
+    .card.fire     .type-badge { background: rgba(255,107,43,0.15); color: var(--fire);     border: 1px solid rgba(255,107,43,0.4); }
+    .card.water    .type-badge { background: rgba(41,182,246,0.15); color: var(--water);    border: 1px solid rgba(41,182,246,0.4); }
+    .card.electric .type-badge { background: rgba(255,224,51,0.15); color: var(--electric); border: 1px solid rgba(255,224,51,0.4); }
+
+    /* e mesma coisa do efeito dos cantos mas fiquei com preguiça de termina se quiser termina tamo junto */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 4px; left: 4px;
+      width: 4px; height: 4px;
+      background: var(--border);
+      border-radius: 1px;
+      opacity: 0.6;
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; right: 4px;
+      width: 4px; height: 4px;
+      background: var(--border);
+      border-radius: 1px;
+      opacity: 0.6;
+    }
+
+    /* linha brilhante em baixo do titulo*/
+    .glow-line {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+      margin: 0 auto 28px;
+      width: 60%;
+      animation: glow-pulse 2.5s ease infinite;
+    }
+    @keyframes glow-pulse {
+      0%, 100% { opacity: 0.5; width: 50%; }
+      50%       { opacity: 1;   width: 70%; }
+    }
+
+    /* animação do footer */
+    .hint {
+      font-family: 'VT323', monospace;
+      font-size: 0.9rem;
+      color: var(--border);
+      text-align: center;
+      margin-top: 28px;
+      letter-spacing: 0.12em;
+      animation: blink-hint 1.2s step-end infinite;
+    }
+    @keyframes blink-hint {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="panel">
+
+    <h1 class="title">
+      <span class="title-icon">⚔</span>
+      BATALHA<br>POKEMON
+      <span class="title-icon" style="animation-delay:.5s">⚔</span>
+    </h1>
+
+    <div class="glow-line"></div>
+
+    <p class="subtitle">Escolha seu pokemon e entre na batalha!</p>
+
+    <div class="cards">
+
+      <!-- pia do fogo -->
+      <div class="card fire" tabindex="0">
+        <div class="card-icon">🔥</div>
+        <div class="card-name">IGNIX</div>
+        <div class="card-desc">Atacante<br>de fogo</div>
+        <span class="type-badge">FOGO</span>
+      </div>
+
+      <!-- pia da agua-->
+      <div class="card water" tabindex="0">
+        <div class="card-icon">🌊</div>
+        <div class="card-name">AQUALAG</div>
+        <div class="card-desc">Tanque<br>de água</div>
+        <span class="type-badge">ÁGUA</span>
+      </div>
+
+      <!-- pia do choque -->
+      <div class="card electric" tabindex="0">
+        <div class="card-icon">⚡</div>
+        <div class="card-name">VOLTIX</div>
+        <div class="card-desc">Velozista<br>elétrico</div>
+        <span class="type-badge">ELÉTRICO</span>
+      </div>
+
+    </div>
+
+    <p class="hint">▶ PRESSIONE ENTER PARA SELECIONAR ◀</p>
+
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MonsterBattle</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+
+
+/* ── DEFINIÇÕES DE POKEMON ocultas ── */
+</style>
+</head>
+<body>
+
+<div id="game-container">
+
+  <!-- TELA DE INÍCIO -->
+  <div id="start-panel" class="active">
+    <h2>⚔ pokemon<br>BATTLE ⚔</h2>
+    <p>Escolha seu pokemon e entre na batalha!</p>
+    <div class="hero-select" id="hero-select"></div>
+  </div>
+
+  <!-- CENA DE BATALHA -->
+  <div id="battle-scene" style="display:none">
+    <!-- HP do inimigo -->
+    <div class="hpbar-box enemy">
+      <div class="hpbar-name">
+        <span id="enemy-name">???</span>
+        <span class="hpbar-level" id="enemy-level">Nv.1</span>
+      </div>
+      <div class="hpbar-track"><div class="hpbar-fill high" id="enemy-hpbar" style="width:100%"></div></div>
+    </div>
+    <!-- HP do jogador -->
+    <div class="hpbar-box player">
+      <div class="hpbar-name">
+        <span id="player-name">???</span>
+        <span class="hpbar-level" id="player-level">Nv.1</span>
+      </div>
+      <div class="hpbar-track"><div class="hpbar-fill high" id="player-hpbar" style="width:100%"></div></div>
+      <div class="hpbar-nums"><span id="player-hp-num">100</span> / <span id="player-hp-max">100</span></div>
+    </div>
+    <!-- Plataformas -->
+    <div class="platform enemy"></div>
+    <div class="platform player"></div>
+    <!-- Sprites dos pokemons -->
+    <div class="sprite enemy" id="enemy-sprite" style="--sx:-1"></div>
+    <div class="sprite player" id="player-sprite" style="--sx:1"></div>
+  </div>
+
+  <!-- DIÁLOGO -->
+  <div id="dialog-box" style="display:none">
+    <div id="dialog-text"></div>
+    <span id="dialog-cursor" style="display:none">▼</span>
+  </div>
+
+  <!-- PAINEL DE AÇÃO -->
+  <div id="action-panel" class="hidden">
+    <button class="action-btn" id="btn-m1" onclick="playerMove(0)"></button>
+    <button class="action-btn" id="btn-m2" onclick="playerMove(1)"></button>
+    <button class="action-btn" id="btn-m3" onclick="playerMove(2)"></button>
+    <button class="action-btn" id="btn-m4" onclick="playerMove(3)"></button>
+  </div>
+
+  <!-- TELA FINAL -->
+  <div id="end-panel">
+    <h2 id="end-title"></h2>
+    <p id="end-msg"></p>
+    <button class="big-btn" onclick="resetGame()">🔄 JOGAR NOVAMENTE</button>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  DADOS
+// ═══════════════════════════════════════════
+
+const HEROES = [
+  {
+    id: 'ignis', name: 'IGNIX', icon: '🔥', desc: 'Atacante de fogo',
+    hp: 90, atk: 75, def: 45, spd: 70, level: 5,
+    moves: [
+      { name: 'Chama Viva', power: 40, type: 'fogo', pp: 20, effect: null },
+      { name: 'Explosão', power: 70, type: 'fogo', pp: 10, effect: null },
+      { name: 'Escudo de Brasas', power: 0, type: 'fogo', pp: 15, effect: 'def+' },
+      { name: 'Vulcão', power: 90, type: 'fogo', pp: 5, effect: null },
+    ]
+  },
+  {
+    id: 'aquos', name: 'AQUOS', icon: '🌊', desc: 'Tanque de água',
+    hp: 120, atk: 55, def: 70, spd: 50, level: 5,
+    moves: [
+      { name: 'Jato d\'Água', power: 40, type: 'água', pp: 20, effect: null },
+      { name: 'Maré Alta', power: 65, type: 'água', pp: 10, effect: null },
+      { name: 'Névoa Cura', power: 0, type: 'água', pp: 10, effect: 'heal' },
+      { name: 'Tsunami', power: 90, type: 'água', pp: 5, effect: null },
+    ]
+  },
+  {
+    id: 'volt', name: 'VOLTIX', icon: '⚡', desc: 'Velocista elétrico',
+    hp: 80, atk: 80, def: 35, spd: 95, level: 5,
+    moves: [
+      { name: 'Descarga', power: 45, type: 'relâmpago', pp: 20, effect: null },
+      { name: 'Raio Duplo', power: 60, type: 'relâmpago', pp: 12, effect: null },
+      { name: 'Aceleração', power: 0, type: 'relâmpago', pp: 15, effect: 'spd+' },
+      { name: 'Tempestade', power: 95, type: 'relâmpago', pp: 5, effect: null },
+    ]
+  },
+];
+
+const ENEMIES = [
+  { name: 'GOBLIM',   icon: '👺', hp: 70,  atk: 45, def: 30, spd: 55, level: 4,
+    moves: [
+      { name: 'Mordida',   power: 35, type: 'normal', pp: 20, effect: null },
+      { name: 'Arranhar',  power: 50, type: 'normal', pp: 12, effect: null },
+      { name: 'Grito',     power: 0,  type: 'normal', pp: 10, effect: 'def-' },
+      { name: 'Fúria',     power: 70, type: 'normal', pp: 5,  effect: null },
+    ]
+  },
+  { name: 'GLACIUS',  icon: '🧊', hp: 85,  atk: 60, def: 55, spd: 45, level: 5,
+    moves: [
+      { name: 'Granizo',   power: 40, type: 'gelo', pp: 20, effect: null },
+      { name: 'Nevasca',   power: 65, type: 'gelo', pp: 10, effect: null },
+      { name: 'Camada Gelo',power: 0, type: 'gelo', pp: 12, effect: 'def+' },
+      { name: 'Blizzard',  power: 85, type: 'gelo', pp: 5,  effect: null },
+    ]
+  },
+  { name: 'VENOMOX',  icon: '🐍', hp: 75,  atk: 65, def: 40, spd: 75, level: 5,
+    moves: [
+      { name: 'Veneno',    power: 40, type: 'veneno', pp: 20, effect: 'poison' },
+      { name: 'Presas',    power: 55, type: 'veneno', pp: 12, effect: null },
+      { name: 'Tóxico',    power: 0,  type: 'veneno', pp: 10, effect: 'poison' },
+      { name: 'Ácido',     power: 80, type: 'veneno', pp: 5,  effect: null },
+    ]
+  },
+  { name: 'TERROK',   icon: '🪨', hp: 110, atk: 70, def: 80, spd: 30, level: 6,
+    moves: [
+      { name: 'Terremoto', power: 55, type: 'terra', pp: 15, effect: null },
+      { name: 'Pedregulho',power: 45, type: 'terra', pp: 18, effect: null },
+      { name: 'Armadura',  power: 0,  type: 'terra', pp: 12, effect: 'def+' },
+      { name: 'Avalanche', power: 90, type: 'terra', pp: 5,  effect: null },
+    ]
+  },
+  { name: 'PSYKRON',  icon: '👁️', hp: 80,  atk: 85, def: 45, spd: 80, level: 7,
+    moves: [
+      { name: 'Telecinese',power: 50, type: 'psíquico', pp: 18, effect: null },
+      { name: 'Confusão',  power: 40, type: 'psíquico', pp: 20, effect: 'confuse' },
+      { name: 'Barreira',  power: 0,  type: 'psíquico', pp: 12, effect: 'def+' },
+      { name: 'Psicoimpacto',power:90,type: 'psíquico', pp: 5,  effect: null },
+    ]
+  },
+];
+
+// ═══════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════
+
+let state = {
+  player: null,
+  enemy: null,
+  pStats: {},  // estatísticas em tempo de execução (hp, atk, def, spd)
+  eStats: {},
+  turn: 'player',
+  battleActive: false,
+  poisoned: false,
+  confused: false,
+  enemyIndex: 0,
+  wins: 0,
+};
+
+// ═══════════════════════════════════════════
+//  INICIALIZAÇÃO
+// ═══════════════════════════════════════════
+
+function initStartScreen() {
+  const sel = document.getElementById('hero-select');
+  sel.innerHTML = '';
+  HEROES.forEach(h => {
+    const btn = document.createElement('button');
+    btn.className = 'hero-btn';
+    btn.innerHTML = `<span class="hero-icon">${h.icon}</span><span class="hero-name">${h.name}</span><span class="hero-desc">${h.desc}</span>`;
+    btn.onclick = () => startBattle(h);
+    sel.appendChild(btn);
+  });
+}
+
+function startBattle(hero) {
+  const enemyDef = ENEMIES[state.enemyIndex % ENEMIES.length];
+
+  // Clonar dados
+  state.player = JSON.parse(JSON.stringify(hero));
+  state.enemy  = JSON.parse(JSON.stringify(enemyDef));
+
+  // Estatísticas em tempo de execução (adiciona rastreamento de modificadores)
+  state.pStats = { hp: hero.hp, maxHp: hero.hp, atk: hero.atk, def: hero.def, spd: hero.spd, defMod: 0, atkMod: 0 };
+  state.eStats = { hp: enemyDef.hp, maxHp: enemyDef.hp, atk: enemyDef.atk, def: enemyDef.def, spd: enemyDef.spd, defMod: 0, atkMod: 0 };
+
+  state.poisoned = false;
+  state.confused = false;
+  state.battleActive = true;
+  state.turn = 'player';
+
+  // Construir interface
+  document.getElementById('start-panel').classList.remove('active');
+  document.getElementById('end-panel').style.display = 'none';
+  document.getElementById('battle-scene').style.display = 'block';
+  document.getElementById('dialog-box').style.display = 'block';
+
+  document.getElementById('enemy-sprite').textContent  = state.enemy.icon;
+  document.getElementById('player-sprite').textContent = state.player.icon;
+  document.getElementById('enemy-name').textContent  = state.enemy.name;
+  document.getElementById('player-name').textContent = state.player.name;
+  document.getElementById('enemy-level').textContent  = `Nv.${state.enemy.level}`;
+  document.getElementById('player-level').textContent = `Nv.${state.player.level}`;
+
+  updateHPBars();
+  setupMoveButtons();
+
+  dialog(`Um ${state.enemy.name} selvagem apareceu!`, () => {
+    dialog(`Vai, ${state.player.name}!`, () => showActions());
+  });
+}
+
+// ═══════════════════════════════════════════
+//  DIÁLOGO
+// ═══════════════════════════════════════════
+
+let dialogQueue = [];
+let dialogTyping = false;
+let dialogResolve = null;
+let typeInterval = null;
+
+function dialog(text, callback) {
+  dialogQueue.push({ text, callback });
+  if (!dialogTyping) processDialog();
+}
+
+function processDialog() {
+  if (!dialogQueue.length) return;
+  const { text, callback } = dialogQueue.shift();
+  dialogTyping = true;
+
+  const el = document.getElementById('dialog-text');
+  const cursor = document.getElementById('dialog-cursor');
+  el.textContent = '';
+  cursor.style.display = 'none';
+  hideActions();
+
+  let i = 0;
+  clearInterval(typeInterval);
+  typeInterval = setInterval(() => {
+    el.textContent += text[i++];
+    if (i >= text.length) {
+      clearInterval(typeInterval);
+      cursor.style.display = 'inline-block';
+      dialogTyping = false;
+      setTimeout(() => {
+        cursor.style.display = 'none';
+        if (callback) callback();
+        else processDialog();
+      }, callback ? 600 : 900);
+    }
+  }, 28);
+}
+
+// ═══════════════════════════════════════════
+//  AJUDANTES DE UI
+// ═══════════════════════════════════════════
+
+function updateHPBars() {
+  const pPct = Math.max(0, state.pStats.hp / state.pStats.maxHp * 100);
+  const ePct = Math.max(0, state.eStats.hp / state.eStats.maxHp * 100);
+
+  const pBar = document.getElementById('player-hpbar');
+  const eBar = document.getElementById('enemy-hpbar');
+
+  pBar.style.width = pPct + '%';
+  eBar.style.width = ePct + '%';
+
+  const cls = (pct) => pct > 50 ? 'high' : pct > 20 ? 'medium' : 'low';
+  pBar.className = 'hpbar-fill ' + cls(pPct);
+  eBar.className = 'hpbar-fill ' + cls(ePct);
+
+  document.getElementById('player-hp-num').textContent = Math.max(0, state.pStats.hp);
+  document.getElementById('player-hp-max').textContent = state.pStats.maxHp;
+}
+
+function setupMoveButtons() {
+  state.player.moves.forEach((m, i) => {
+    const btn = document.getElementById(`btn-m${i+1}`);
+    btn.innerHTML = `<span>${m.name}</span><span class="btn-type type-${m.type}">${m.type.toUpperCase()} • PP:${m.pp}</span>`;
+    btn.disabled = m.pp <= 0;
+  });
+}
+
+function showActions() {
+  document.getElementById('action-panel').classList.remove('hidden');
+  document.getElementById('dialog-cursor').style.display = 'none';
+  document.getElementById('dialog-text').textContent = 'O que fazer?';
+}
+
+function hideActions() {
+  document.getElementById('action-panel').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════
+//  LÓGICA DE BATALHA
+// ═══════════════════════════════════════════
+
+function calcDamage(move, atkStat, defStat, level) {
+  if (move.power === 0) return 0;
+  // Fórmula de dano simplificada inspirada na Geração 1
+  const base = ((2 * level / 5 + 2) * move.power * (atkStat / defStat)) / 50 + 2;
+  const rand = 0.85 + Math.random() * 0.15;
+  return Math.max(1, Math.round(base * rand));
+}
+
+function applyEffect(effect, target) {
+  if (!effect) return '';
+  if (effect === 'def+') {
+    if (target === 'player') state.pStats.def = Math.round(state.pStats.def * 1.3);
+    else state.eStats.def = Math.round(state.eStats.def * 1.3);
+    return target === 'player' ? `${state.player.name} aumentou a Defesa!` : `${state.enemy.name} aumentou a Defesa!`;
+  }
+  if (effect === 'def-') {
+    if (target === 'player') state.pStats.def = Math.round(state.pStats.def * 0.75);
+    else state.eStats.def = Math.round(state.eStats.def * 0.75);
+    return target === 'player' ? `${state.player.name} baixou a Defesa!` : `${state.enemy.name} baixou a Defesa!`;
+  }
+  if (effect === 'spd+') {
+    if (target === 'player') state.pStats.spd = Math.round(state.pStats.spd * 1.4);
+    return `${state.player.name} ficou mais rápido!`;
+  }
+  if (effect === 'heal') {
+    const heal = Math.round(state.pStats.maxHp * 0.3);
+    state.pStats.hp = Math.min(state.pStats.maxHp, state.pStats.hp + heal);
+    updateHPBars();
+    return `${state.player.name} recuperou ${heal} HP!`;
+  }
+  if (effect === 'poison') {
+    state.poisoned = true;
+    return `${state.player.name} foi envenenado!`;
+  }
+  if (effect === 'confuse') {
+    state.confused = true;
+    return `${state.player.name} ficou confuso!`;
+  }
+  return '';
+}
+
+function floatDamage(dmg, isPlayer) {
+  const scene = document.getElementById('battle-scene');
+  const el = document.createElement('div');
+  el.className = 'dmg-float';
+  el.textContent = `-${dmg}`;
+  el.style.color = '#ff4444';
+  el.style.left = isPlayer ? '60px' : '320px';
+  el.style.top  = isPlayer ? '110px' : '70px';
+  scene.appendChild(el);
+  setTimeout(() => el.remove(), 1000);
+}
+
+function animSprite(id, anim, duration = 450) {
+  return new Promise(res => {
+    const el = document.getElementById(id);
+    const classes = String(anim).split(/\s+/).filter(Boolean);
+    if (classes.length) el.classList.add(...classes);
+    setTimeout(() => { if (classes.length) el.classList.remove(...classes); res(); }, duration);
+  });
+}
+
+async function playerMove(index) {
+  if (!state.battleActive || state.turn !== 'player') return;
+  state.turn = 'busy';
+  hideActions();
+
+  const move = state.player.moves[index];
+  if (move.pp <= 0) { showActions(); state.turn = 'player'; return; }
+  move.pp--;
+  setupMoveButtons();
+
+  // Checagem de confusão
+  if (state.confused && Math.random() < 0.33) {
+    await animSprite('player-sprite', 'shake');
+    const selfDmg = Math.round(state.pStats.maxHp * 0.1);
+    state.pStats.hp -= selfDmg;
+    updateHPBars();
+    floatDamage(selfDmg, true);
+    dialog(`${state.player.name} ficou confuso e se machucou!`, async () => {
+      state.confused = false;
+      await checkPlayerFaint() || enemyTurn();
+    });
+    return;
+  }
+
+  if (move.power > 0) {
+    // Animação de ataque
+    await animSprite('player-sprite', 'attack-right', 400);
+    const dmg = calcDamage(move, state.pStats.atk, state.eStats.def, state.player.level);
+    state.eStats.hp -= dmg;
+    updateHPBars();
+    floatDamage(dmg, false);
+    await animSprite('enemy-sprite', 'hit-flash shake', 450);
+
+    const effMsg = applyEffect(move.effect, 'enemy');
+    const msgs = [`${state.player.name} usou ${move.name}! (${dmg} dano)`];
+    if (effMsg) msgs.push(effMsg);
+
+    const next = async () => {
+      if (await checkEnemyFaint()) return;
+      enemyTurn();
+    };
+
+    if (msgs.length > 1) {
+      dialog(msgs[0], () => dialog(msgs[1], next));
+    } else {
+      dialog(msgs[0], next);
+    }
+  } else {
+    // Movimento de status
+    const effMsg = applyEffect(move.effect, 'player') || `${state.player.name} usou ${move.name}!`;
+    dialog(`${state.player.name} usou ${move.name}!`, () => {
+      if (move.effect === 'heal') {
+        dialog(effMsg, () => enemyTurn());
+      } else {
+        dialog(effMsg, () => enemyTurn());
+      }
+    });
+  }
+}
+
+async function enemyTurn() {
+  state.turn = 'enemy';
+
+  // Escolher o melhor movimento disponível (aleatório ponderado favorecendo maior poder)
+  const avail = state.enemy.moves.filter(m => m.pp > 0);
+  if (!avail.length) {
+    dialog(`${state.enemy.name} não tem mais movimentos!`, () => { state.turn = 'player'; showActions(); });
+    return;
+  }
+
+  // Ponderar por poder (status = peso 30)
+  const weights = avail.map(m => m.power > 0 ? m.power : 30);
+  const total = weights.reduce((a,b) => a+b, 0);
+  let r = Math.random() * total;
+  let chosen = avail[0];
+  for (let i = 0; i < avail.length; i++) {
+    r -= weights[i];
+    if (r <= 0) { chosen = avail[i]; break; }
+  }
+  chosen.pp--;
+
+  // Pequeno atraso para sensação de vez do inimigo
+  await new Promise(res => setTimeout(res, 400));
+
+  if (chosen.power > 0) {
+    await animSprite('enemy-sprite', 'attack-left', 400);
+    const dmg = calcDamage(chosen, state.eStats.atk, state.pStats.def, state.enemy.level);
+    state.pStats.hp -= dmg;
+    updateHPBars();
+    floatDamage(dmg, true);
+    await animSprite('player-sprite', 'hit-flash shake', 450);
+
+    const effMsg = applyEffect(chosen.effect, 'player');
+    const msgs = [`${state.enemy.name} usou ${chosen.name}! (${dmg} dano)`];
+    if (effMsg) msgs.push(effMsg);
+
+    const next = async () => {
+      if (await checkPlayerFaint()) return;
+      // Dano de veneno
+      if (state.poisoned) {
+        const poisonDmg = Math.round(state.pStats.maxHp * 0.08);
+        state.pStats.hp -= poisonDmg;
+        updateHPBars();
+        floatDamage(poisonDmg, true);
+        dialog(`${state.player.name} sofreu dano de veneno! (${poisonDmg})`, async () => {
+          if (await checkPlayerFaint()) return;
+          state.turn = 'player'; showActions();
+        });
+      } else {
+        state.turn = 'player'; showActions();
+      }
+    };
+
+    if (msgs.length > 1) {
+      dialog(msgs[0], () => dialog(msgs[1], next));
+    } else {
+      dialog(msgs[0], next);
+    }
+  } else {
+    const effMsg = applyEffect(chosen.effect, 'enemy') || `${state.enemy.name} usou ${chosen.name}!`;
+    dialog(`${state.enemy.name} usou ${chosen.name}!`, () => {
+      dialog(effMsg, () => { state.turn = 'player'; showActions(); });
+    });
+  }
+}
+
+async function checkEnemyFaint() {
+  if (state.eStats.hp <= 0) {
+    state.eStats.hp = 0;
+    updateHPBars();
+    state.battleActive = false;
+    await animSprite('enemy-sprite', 'faint', 750);
+    state.wins++;
+    dialog(`${state.enemy.name} desmaiou!`, () => {
+      const nextEnemy = ENEMIES[(state.enemyIndex + 1) % ENEMIES.length];
+      if (state.enemyIndex + 1 >= ENEMIES.length) {
+        // Vitória total
+        dialog(`Você derrotou todos os monstros! CAMPEÃO!`, () => showEndScreen(true));
+      } else {
+        dialog(`Vitória! Próximo inimigo: ${nextEnemy.name}...`, () => {
+          state.enemyIndex++;
+          // Cura parcial
+          const heal = Math.round(state.pStats.maxHp * 0.4);
+          state.pStats.hp = Math.min(state.pStats.maxHp, state.pStats.hp + heal);
+          startNextEnemy();
+        });
+      }
+    });
+    return true;
+  }
+  return false;
+}
+
+async function checkPlayerFaint() {
+  if (state.pStats.hp <= 0) {
+    state.pStats.hp = 0;
+    updateHPBars();
+    state.battleActive = false;
+    await animSprite('player-sprite', 'faint', 750);
+    dialog(`${state.player.name} desmaiou!`, () => {
+      dialog(`Você perdeu... Vitórias: ${state.wins}`, () => showEndScreen(false));
+    });
+    return true;
+  }
+  return false;
+}
+
+function startNextEnemy() {
+  const enemyDef = ENEMIES[state.enemyIndex % ENEMIES.length];
+  state.enemy = JSON.parse(JSON.stringify(enemyDef));
+  state.eStats = { hp: enemyDef.hp, maxHp: enemyDef.hp, atk: enemyDef.atk, def: enemyDef.def, spd: enemyDef.spd };
+  state.poisoned = false;
+  state.confused = false;
+  state.battleActive = true;
+  state.turn = 'player';
+
+  // Restaurar PPs dos movimentos do jogador
+  state.player.moves.forEach(m => { m.pp = HEROES.find(h=>h.id===state.player.id).moves.find(mm=>mm.name===m.name).pp; });
+
+  document.getElementById('enemy-sprite').textContent = state.enemy.icon;
+  document.getElementById('enemy-sprite').style.opacity = '1';
+  document.getElementById('enemy-name').textContent = state.enemy.name;
+  document.getElementById('enemy-level').textContent = `Nv.${state.enemy.level}`;
+
+  updateHPBars();
+  setupMoveButtons();
+
+  dialog(`Um ${state.enemy.name} selvagem apareceu!`, () => showActions());
+}
+
+function showEndScreen(won) {
+  document.getElementById('battle-scene').style.display = 'none';
+  document.getElementById('dialog-box').style.display = 'none';
+  const ep = document.getElementById('end-panel');
+  ep.style.display = 'block';
+  document.getElementById('end-title').textContent = won ? '🏆 VOCÊ VENCEU!' : '💀 VOCÊ PERDEU!';
+  document.getElementById('end-msg').textContent = won
+    ? `Parabéns, ${state.player.name}! Você derrotou todos os ${ENEMIES.length} monstros!`
+    : `${state.player.name} desmaiou após ${state.wins} vitória(s). Tente novamente!`;
+}
+
+function resetGame() {
+  state.enemyIndex = 0;
+  state.wins = 0;
+  document.getElementById('end-panel').style.display = 'none';
+  document.getElementById('start-panel').classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+//  INICIALIZAÇÃO
+// ═══════════════════════════════════════════
+initStartScreen();
+</script>
+</body>
+</html>
